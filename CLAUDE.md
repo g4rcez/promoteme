@@ -53,3 +53,11 @@ Single-file Bash script (`promoteme.sh`) with three phases:
 - `promoteme.sh` - Main CLI script
 - `PROMPT.txt` - AI prompt template for generating summaries
 - `EXAMPLES.md` - Usage examples with date filtering
+
+## Code Style Rules
+
+1. Avoid comments
+2. Never use emojis
+3. Avoid dead code
+4. Use Rust best practices
+5. Always validate user input
