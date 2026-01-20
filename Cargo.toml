@@ -2,6 +2,11 @@
 name = "promoteme"
 version = "0.1.0"
 edition = "2021"
+description = "CLI tool that generates brag documents from GitHub contributions"
+license = "MIT"
+repository = "https://github.com/g4rcez/promoteme"
+keywords = ["cli", "github", "brag-document", "performance-review"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

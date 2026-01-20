@@ -1,19 +1,125 @@
 # promoteme
 
-This will be a CLI that helps you to write your own brag documents. 
+A CLI that helps you write brag documents by analyzing your GitHub contributions.
 
 ## Features
 
-- Get all repositories that make contributions
-- Get all PRs for each repository that you made a contribution
-- Based on all PRs and contributions, create a summary of the entire contribution in a period of time
+- Automatic PR fetching via GitHub CLI
+- Repository grouping and analysis
+- AI-powered document generation (Gemini/Claude)
+- Multi-language output support
+- Personal notes integration
+- Date range filtering
+- Organization and repository filtering
+
+## Prerequisites
+
+- [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated via `gh auth login`
+- AI CLI for document synthesis:
+  - [Gemini CLI](https://github.com/google-gemini/gemini-cli) (default)
+  - or [Claude CLI](https://docs.anthropic.com/en/docs/claude-code)
+
+## Installation
+
+### Via Cargo (crates.io)
+```bash
+cargo install promoteme
+```
+
+### From source
+```bash
+git clone https://github.com/g4rcez/promoteme
+cd promoteme
+cargo install --path .
+```
+
+## Usage
+
+```
+promoteme generate [OPTIONS]
+
+Options:
+  --start-date    Start date YYYY-MM-DD (default: 6 months ago)
+  --end-date      End date YYYY-MM-DD (default: today)
+  --org           Filter by organization(s), comma-separated
+  --repo          Filter by repo(s), format: owner/repo
+  -l, --language  Output language (English, Portuguese, etc.)
+  -m, --model     AI model: gemini (default), claude
+  --notes         Directory with personal notes (.md/.txt)
+```
+
+### Examples
+
+Basic usage (last 6 months):
+```bash
+promoteme generate
+```
+
+With date filters:
+```bash
+promoteme generate --start-date 2024-01-01 --end-date 2024-06-30
+```
+
+Filter by organization:
+```bash
+promoteme generate --org my-company
+```
+
+Filter by specific repositories:
+```bash
+promoteme generate --repo owner/repo1 --repo owner/repo2
+```
+
+Output in Portuguese:
+```bash
+promoteme generate -l Portuguese
+```
+
+Using Claude instead of Gemini:
+```bash
+promoteme generate -m claude
+```
+
+Include personal notes:
+```bash
+promoteme generate --notes ~/my-notes
+```
 
 ## Tech stack
 
-- Bash
+- Rust
 - Github CLI - https://cli.github.com/
 - Github MCP - https://github.com/github/github-mcp-server
 - Linear MCP - https://linear.app/docs/mcp
+
+## What is a Brag Document?
+
+A brag document is a running record of your professional accomplishments. It serves as a personal changelog of your work contributions.
+
+### When to use
+
+- Performance reviews
+- Promotion discussions
+- Job interviews
+- Salary negotiations
+- Updating your resume
+
+### Tips for maintaining one
+
+- Update it regularly (weekly or bi-weekly)
+- Include quantifiable impact when possible
+- Document both technical and non-technical contributions
+- Keep it factual and specific
+
+### What to include
+
+- Pull requests and code contributions
+- Code reviews and mentoring
+- Documentation improvements
+- Bug fixes and incidents resolved
+- Process improvements
+- Cross-team collaboration
+- Knowledge sharing and presentations
 
 ## References
 
