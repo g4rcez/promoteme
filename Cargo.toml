@@ -1,7 +1,7 @@
 [package]
 name = "promoteme"
 version = "0.1.0"
-edition = "2026"
+edition = "2024"
 description = "CLI tool that generates brag documents from your contributions"
 license = "MIT"
 repository = "https://github.com/g4rcez/promoteme"

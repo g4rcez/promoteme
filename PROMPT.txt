@@ -17,12 +17,14 @@ You will receive a list of PRs, where each PR includes:
 2.  **Key Highlights:** Bullet points of the most significant achievements. Group related PRs if possible (e.g., "Refactored the authentication system across 3 PRs...").
 3.  **Impact Analysis:** Explicitly state the impact on the codebase (e.g., "Improved test coverage," "Reduced technical debt," "Delivered critical feature X").
 4.  **Tone:** Professional, action-oriented, and persuasive (suitable for performance reviews).
+5.  **No emoji:** Professional document, avoid emojis because they aren't so serious
 
 **Advice from Brag Document best practices:**
 - Focus on the *why*, not just the *what*.
 - Quantify impact where possible.
 - Mention collaboration or leadership if evident.
 - Highlight "glue work" (maintenance, refactoring, tests) as valuable engineering contributions.
+- The output must be a markdown file, without any other content, except the main topic `brag document`
 
 **Format:**
 Return the response in Markdown format.

@@ -6,7 +6,7 @@ A CLI that helps you write brag documents by analyzing your GitHub contributions
 
 - Automatic PR fetching via GitHub CLI
 - Repository grouping and analysis
-- AI-powered document generation (Gemini/Claude)
+- AI-powered document generation (Claude/Gemini)
 - Multi-language output support
 - Personal notes integration
 - Date range filtering
@@ -16,8 +16,8 @@ A CLI that helps you write brag documents by analyzing your GitHub contributions
 
 - [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated via `gh auth login`
 - AI CLI for document synthesis:
-  - [Gemini CLI](https://github.com/google-gemini/gemini-cli) (default)
-  - or [Claude CLI](https://docs.anthropic.com/en/docs/claude-code)
+  - [Claude CLI](https://docs.anthropic.com/en/docs/claude-code) (default)
+  - or [Gemini CLI](https://github.com/google-gemini/gemini-cli)
 
 ## Installation
 
@@ -44,7 +44,7 @@ Options:
   --org           Filter by organization(s), comma-separated
   --repo          Filter by repo(s), format: owner/repo
   -l, --language  Output language (English, Portuguese, etc.)
-  -m, --model     AI model: gemini (default), claude
+  -m, --model     AI model: claude (default), gemini. Use cli@model format for specific model.
   --notes         Directory with personal notes (.md/.txt)
 ```
 
@@ -78,6 +78,11 @@ promoteme generate -l Portuguese
 Using Claude instead of Gemini:
 ```bash
 promoteme generate -m claude
+```
+
+Using specific model:
+```bash
+promoteme generate -m claude@claude-opus-4-5
 ```
 
 Include personal notes:

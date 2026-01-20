@@ -3,24 +3,38 @@ use std::process::Command;
 
 const PROMPT_TEMPLATE: &str = include_str!("prompt.txt");
 
-/// Check if AI CLI is available
+fn parse_model_spec(model: &str) -> (&str, Option<&str>) {
+    match model.split_once('@') {
+        Some((cli, model_name)) => (cli, Some(model_name)),
+        None => (model, None),
+    }
+}
+
 pub fn check_ai_available(model: &str) -> bool {
+    let (cli, _) = parse_model_spec(model);
     Command::new("which")
-        .arg(model)
+        .arg(cli)
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
 }
 
-/// Invoke AI CLI with a prompt
 pub fn invoke_ai(model: &str, prompt: &str) -> Result<String> {
-    let output = Command::new(model)
-        .args(["-p", prompt])
-        .output()?;
+    let (cli, model_name) = parse_model_spec(model);
+
+    let mut cmd = Command::new(cli);
+    if let Some(m) = model_name {
+        cmd.args(["--model", m]);
+    }
+    cmd.args(["-p", prompt]);
+
+    let output = cmd.output()?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!("AI invocation failed: {}", stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let error_output = if !stderr.is_empty() { stderr } else { stdout };
+        bail!("AI invocation failed: {}", error_output);
     }
 
     Ok(String::from_utf8(output.stdout)?)

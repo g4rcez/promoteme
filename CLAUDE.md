@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Promoteme is a Bash CLI tool that generates "brag documents" - summaries of GitHub contributions for performance reviews. It fetches PRs via GitHub API, analyzes them, and uses AI (Gemini by default) to synthesize impact narratives.
+Promoteme is a Bash CLI tool that generates "brag documents" - summaries of GitHub contributions for performance reviews. It fetches PRs via GitHub API, analyzes them, and uses AI (Claude by default) to synthesize impact narratives.
 
 ## Running the CLI
 
@@ -21,8 +21,8 @@ chmod +x promoteme.sh
 # Specify output language
 ./promoteme.sh -l Portuguese
 
-# Use different AI model
-./promoteme.sh -m claude
+# Use specific AI model
+./promoteme.sh -m claude@claude-opus-4-5
 ```
 
 ## Dependencies
@@ -30,7 +30,7 @@ chmod +x promoteme.sh
 Required tools that must be installed:
 - `gh` (GitHub CLI) - must be authenticated via `gh auth login`
 - `jq` - JSON processor
-- AI CLI (default: `gemini`) - for final document synthesis
+- AI CLI (default: `claude`) - for final document synthesis
 
 ## Architecture
 
