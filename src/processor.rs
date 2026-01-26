@@ -1,12 +1,11 @@
 use anyhow::Result;
 use indicatif::{ProgressBar, ProgressStyle};
-use rayon::prelude::*;
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use crate::github::fetch_pr_details;
 use crate::models::{ProcessedPr, SearchResult};
+use crate::provider::PrProvider;
 
-/// Group PRs by repository
 pub fn group_prs_by_repo(prs: Vec<SearchResult>) -> HashMap<String, Vec<SearchResult>> {
     let mut grouped: HashMap<String, Vec<SearchResult>> = HashMap::new();
 
@@ -17,9 +16,8 @@ pub fn group_prs_by_repo(prs: Vec<SearchResult>) -> HashMap<String, Vec<SearchRe
     grouped
 }
 
-/// Process a single PR to extract details
-pub fn process_pr(pr: &SearchResult) -> Result<ProcessedPr> {
-    let details = fetch_pr_details(&pr.url)?;
+pub fn process_pr(pr: &SearchResult, provider: &dyn PrProvider) -> Result<ProcessedPr> {
+    let details = provider.fetch_pr_details(&pr.url)?;
 
     let total_changes = details.additions + details.deletions;
 
@@ -59,8 +57,7 @@ pub fn process_pr(pr: &SearchResult) -> Result<ProcessedPr> {
     })
 }
 
-/// Process all PRs in parallel with progress bar
-pub fn process_all_prs(prs: &[SearchResult]) -> Vec<ProcessedPr> {
+pub fn process_all_prs(prs: &[SearchResult], provider: Arc<dyn PrProvider + Send + Sync>) -> Vec<ProcessedPr> {
     let pb = ProgressBar::new(prs.len() as u64);
     pb.set_style(
         ProgressStyle::default_bar()
@@ -70,9 +67,9 @@ pub fn process_all_prs(prs: &[SearchResult]) -> Vec<ProcessedPr> {
     );
 
     let results: Vec<ProcessedPr> = prs
-        .par_iter()
+        .iter()
         .filter_map(|pr| {
-            let result = process_pr(pr);
+            let result = process_pr(pr, provider.as_ref());
             pb.inc(1);
             match result {
                 Ok(processed) => Some(processed),
@@ -88,7 +85,6 @@ pub fn process_all_prs(prs: &[SearchResult]) -> Vec<ProcessedPr> {
     results
 }
 
-/// Generate markdown report for a repository
 pub fn generate_repo_report(repo: &str, prs: &[ProcessedPr]) -> String {
     let mut report = format!("# Report for {}\n\n", repo);
 

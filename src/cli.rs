@@ -1,17 +1,35 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(name = "promoteme")]
-#[command(about = "Generate brag documents from GitHub contributions", long_about = None)]
+#[command(about = "Generate brag documents from GitHub or Azure DevOps contributions", long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum, Debug)]
+pub enum Source {
+    Github,
+    Azuredevops,
+}
+
+impl std::fmt::Display for Source {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Source::Github => write!(f, "github"),
+            Source::Azuredevops => write!(f, "azuredevops"),
+        }
+    }
+}
+
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Generate brag document from GitHub contributions
+    /// Generate brag document from GitHub or Azure DevOps contributions
     Generate {
+        #[arg(long, value_enum, default_value = "github")]
+        source: Source,
+
         #[arg(long)]
         start_date: Option<String>,
 
@@ -30,7 +48,6 @@ pub enum Commands {
         #[arg(short = 'm', long, default_value = "claude")]
         model: String,
 
-        /// Directory with personal notes (.md/.txt) about non-code contributions
         #[arg(long)]
         notes: Option<String>,
     },

@@ -1,27 +1,33 @@
 mod ai;
+mod azuredevops;
 mod cli;
 mod github;
 mod models;
 mod notes;
 mod processor;
+mod provider;
 
 use anyhow::Result;
 use chrono::{Duration, Utc};
 use clap::Parser;
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::ai::{check_ai_available, concatenate_reports, generate_final_document, generate_notes_summary, translate_report};
-use crate::cli::{Cli, Commands};
-use crate::github::{check_gh_auth, check_gh_installed, fetch_prs, get_current_user};
+use crate::azuredevops::AzureDevOpsProvider;
+use crate::cli::{Cli, Commands, Source};
+use crate::github::GitHubProvider;
 use crate::notes::collect_notes;
 use crate::processor::{generate_repo_report, group_prs_by_repo, process_all_prs};
+use crate::provider::PrProvider;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
         Some(Commands::Generate {
+            source,
             start_date,
             end_date,
             org,
@@ -30,13 +36,13 @@ fn main() -> Result<()> {
             model,
             notes,
         }) => {
-            run_generate(start_date, end_date, org, repo, language, model, notes)?;
+            run_generate(source, start_date, end_date, org, repo, language, model, notes)?;
         }
         None => {
             println!("Usage: promoteme <command> [OPTIONS]");
             println!();
             println!("Commands:");
-            println!("  generate    Generate brag document from GitHub contributions");
+            println!("  generate    Generate brag document from GitHub or Azure DevOps contributions");
             println!();
             println!("Run 'promoteme --help' for more information.");
         }
@@ -45,7 +51,15 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+fn create_provider(source: Source, org: Option<&str>) -> Arc<dyn PrProvider + Send + Sync> {
+    match source {
+        Source::Github => Arc::new(GitHubProvider::new()),
+        Source::Azuredevops => Arc::new(AzureDevOpsProvider::new(org.map(String::from))),
+    }
+}
+
 fn run_generate(
+    source: Source,
     start_date: Option<String>,
     end_date: Option<String>,
     org_filter: Option<String>,
@@ -54,11 +68,13 @@ fn run_generate(
     model: String,
     notes_dir: Option<String>,
 ) -> Result<()> {
-    check_gh_installed()?;
-    check_gh_auth()?;
+    let provider = create_provider(source, org_filter.as_deref());
 
-    let current_user = get_current_user()?;
-    println!("Fetching PRs for user: {}...", current_user);
+    provider.check_installed()?;
+    provider.check_auth()?;
+
+    let current_user = provider.get_current_user()?;
+    println!("Fetching PRs for user: {} from {}...", current_user, source);
 
     let (start, end) = resolve_dates(start_date, end_date);
 
@@ -68,9 +84,9 @@ fn run_generate(
 
     let output_dir = Path::new(&current_user);
     fs::create_dir_all(output_dir)?;
-    println!("📂 Output directory created: {}", output_dir.display());
+    println!("Output directory created: {}", output_dir.display());
 
-    let prs = fetch_prs(
+    let prs = provider.fetch_prs(
         &current_user,
         date_filter.as_deref(),
         org_filter.as_deref(),
@@ -84,7 +100,7 @@ fn run_generate(
 
     println!("Found {} PRs. Processing...", prs.len());
 
-    let processed_prs = process_all_prs(&prs);
+    let processed_prs = process_all_prs(&prs, provider.clone());
 
     if processed_prs.is_empty() {
         println!("No PRs could be processed.");
@@ -129,7 +145,7 @@ fn run_generate(
             let filename = repo.replace('/', "_");
             let report_path = output_dir.join(format!("{}.md", filename));
             fs::write(&report_path, &final_report)?;
-            println!("✅ Saved report: {}", report_path.display());
+            println!("Saved report: {}", report_path.display());
 
             reports.push((repo.clone(), final_report));
         }
@@ -140,13 +156,12 @@ fn run_generate(
         if notes_path.is_dir() {
             let content = collect_notes(notes_path)?;
             if !content.is_empty() {
-                // Generate notes summary if AI available
                 if check_ai_available(&model) {
-                    println!("🤖 Generating notes summary...");
+                    println!("Generating notes summary...");
                     let summary = generate_notes_summary(&model, &content, language.as_deref())?;
                     let notes_summary_path = output_dir.join("NOTES_SUMMARY.md");
                     fs::write(&notes_summary_path, &summary)?;
-                    println!("✅ Notes summary: {}", notes_summary_path.display());
+                    println!("Notes summary: {}", notes_summary_path.display());
                 }
                 Some(content)
             } else {
@@ -159,12 +174,10 @@ fn run_generate(
         None
     };
 
-    // Generate final document
     let final_doc_path = output_dir.join("README.md");
-    println!("🤖 Generating final consolidated brag document...");
+    println!("Generating final consolidated brag document...");
 
     if check_ai_available(&model) {
-        // Concatenate all repo content
         let mut repo_content = String::new();
         for (repo, report) in &reports {
             repo_content.push_str("\n\n---\n");
@@ -180,12 +193,12 @@ fn run_generate(
         )?;
 
         fs::write(&final_doc_path, &final_doc)?;
-        println!("✅ Final document generated using {}: {}", model, final_doc_path.display());
+        println!("Final document generated using {}: {}", model, final_doc_path.display());
     } else {
-        println!("⚠️ '{}' CLI not found. Concatenating files instead.", model);
+        println!("'{}' CLI not found. Concatenating files instead.", model);
         let final_doc = concatenate_reports(&reports, &dir_suffix);
         fs::write(&final_doc_path, &final_doc)?;
-        println!("✅ Final Brag Document concatenated: {}", final_doc_path.display());
+        println!("Final Brag Document concatenated: {}", final_doc_path.display());
     }
 
     Ok(())
