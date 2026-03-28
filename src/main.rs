@@ -8,14 +8,14 @@ mod processor;
 mod team;
 
 use anyhow::{anyhow, Result};
-use chrono::{Duration, Utc};
+use chrono::{Duration, Local, Utc};
 use clap::Parser;
 use std::fs;
 use std::path::Path;
 
 use crate::ai::{check_ai_available, concatenate_reports, generate_final_document, generate_notes_summary, generate_team_document, translate_report};
 use crate::cli::{Cli, Commands};
-use crate::github::{check_gh_auth, check_gh_installed, fetch_org_members, fetch_prs, fetch_reviews_by_user, get_current_user};
+use crate::github::{check_gh_auth, check_gh_installed, fetch_commit_counts, fetch_org_members, fetch_prs, fetch_quality_reviews, get_current_user};
 use crate::notes::collect_notes;
 use crate::processor::{generate_repo_report, process_all_prs};
 
@@ -140,7 +140,7 @@ fn run_generate(
         let filename = repo.replace('/', "_");
         let report_path = output_dir.join(format!("{}.md", filename));
         fs::write(&report_path, &final_report)?;
-        println!("✅ Saved report: {}", report_path.display());
+        println!("Saved report: {}", report_path.display());
 
         reports.push((repo.clone(), final_report));
     }
@@ -150,13 +150,12 @@ fn run_generate(
         if notes_path.is_dir() {
             let content = collect_notes(notes_path)?;
             if !content.is_empty() {
-                // Generate notes summary if AI available
                 if check_ai_available(&model) {
-                    println!("🤖 Generating notes summary...");
+                    println!("Generating notes summary...");
                     let summary = generate_notes_summary(&model, &content, language.as_deref())?;
                     let notes_summary_path = output_dir.join("NOTES_SUMMARY.md");
                     fs::write(&notes_summary_path, &summary)?;
-                    println!("✅ Notes summary: {}", notes_summary_path.display());
+                    println!("Notes summary: {}", notes_summary_path.display());
                 }
                 Some(content)
             } else {
@@ -169,9 +168,8 @@ fn run_generate(
         None
     };
 
-    // Generate final document
     let final_doc_path = output_dir.join("README.md");
-    println!("🤖 Generating final consolidated brag document...");
+    println!("Generating final consolidated brag document...");
 
     if check_ai_available(&model) {
         // Concatenate all repo content
@@ -190,12 +188,12 @@ fn run_generate(
         )?;
 
         fs::write(&final_doc_path, &final_doc)?;
-        println!("✅ Final document generated using {}: {}", model, final_doc_path.display());
+        println!("Final document generated using {}: {}", model, final_doc_path.display());
     } else {
-        println!("⚠️ '{}' CLI not found. Concatenating files instead.", model);
+        println!("'{}' CLI not found. Concatenating files instead.", model);
         let final_doc = concatenate_reports(&reports, &dir_suffix);
         fs::write(&final_doc_path, &final_doc)?;
-        println!("✅ Final Brag Document concatenated: {}", final_doc_path.display());
+        println!("Final Brag Document concatenated: {}", final_doc_path.display());
     }
 
     Ok(())
@@ -245,11 +243,12 @@ fn run_team_setup(members_opt: Option<String>, org_filter: Option<String>) -> Re
     check_gh_installed()?;
     check_gh_auth()?;
 
+    let team_name = org_filter.as_deref().unwrap_or("team").to_string();
     let members = resolve_members(members_opt, org_filter)?;
-    let path = config::generate_setup_file(&members)?;
-    println!("Created {} with {} members (all defaulting to junior).", path.display(), members.len());
-    println!("Edit artifacts/team.json to set levels, then run: promoteme generate --team --org ...");
-    println!("Valid levels: junior, mid, senior, tech_lead, specialist, architect, manager");
+    let path = config::generate_setup_file(&members, &team_name)?;
+    println!("Created {} with {} members (all defaulting to entrylevel).", path.display(), members.len());
+    println!("Edit {}/team.json to set levels, then run: promoteme generate --team --org ...", team_name);
+    println!("Valid levels: entrylevel, mid, senior, tech_lead, specialist, architect, manager");
     Ok(())
 }
 
@@ -265,9 +264,10 @@ fn run_team_generate(
     check_gh_installed()?;
     check_gh_auth()?;
 
+    let team_name = org_filter.as_deref().unwrap_or("team").to_string();
     let members = resolve_members(members_opt, org_filter.clone())?;
 
-    let config_dir = Path::new("artifacts");
+    let config_dir = Path::new(&team_name);
     let team_config = config::load_team_config(config_dir)?;
     if team_config.is_some() {
         println!("Loaded team config from {}.", config_dir.join("team.json").display());
@@ -278,7 +278,8 @@ fn run_team_generate(
     let (start, end) = resolve_dates(start_date, end_date);
     let date_filter = build_date_filter(&start, &end);
 
-    let output_dir_name = format!("artifacts/team_{}", get_timestamp_suffix());
+    let timestamp = Local::now().format("%Y_%m_%d_%H_%M").to_string();
+    let output_dir_name = format!("{}/{}", team_name, timestamp);
     let output_dir = Path::new(&output_dir_name);
     fs::create_dir_all(output_dir)?;
     println!("Output directory created: {}", output_dir.display());
@@ -305,15 +306,34 @@ fn run_team_generate(
 
         let processed_prs = process_all_prs(&prs);
 
-        let reviews = fetch_reviews_by_user(
+        let (total_reviews, quality_reviews) = match fetch_quality_reviews(
             member,
             date_filter.as_deref(),
             org_filter.as_deref(),
             repo_filter.as_deref(),
-        )
-        .unwrap_or(0);
+        ) {
+            Ok(counts) => counts,
+            Err(e) => {
+                eprintln!("Warning: Could not fetch reviews for {}: {}", member, e);
+                (0, 0)
+            }
+        };
 
-        let stats = team::compute_member_stats(member, &processed_prs, reviews);
+        let commits_by_repo = match fetch_commit_counts(
+            member,
+            start.as_deref(),
+            end.as_deref(),
+            org_filter.as_deref(),
+            repo_filter.as_deref(),
+        ) {
+            Ok(counts) => counts,
+            Err(e) => {
+                eprintln!("Warning: Could not fetch commits for {}: {}", member, e);
+                std::collections::HashMap::new()
+            }
+        };
+
+        let stats = team::compute_member_stats(member, &processed_prs, total_reviews, quality_reviews, commits_by_repo);
         let report = team::generate_member_report(&stats, &processed_prs);
 
         let member_path = output_dir.join(format!("{}.md", member));

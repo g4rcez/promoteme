@@ -5,6 +5,17 @@ use rayon::prelude::*;
 use crate::github::fetch_pr_details;
 use crate::models::{ProcessedPr, SearchResult};
 
+fn is_doc_file(path: &str) -> bool {
+    let lower = path.to_lowercase();
+    let in_docs_dir = lower.starts_with("docs/") || lower.contains("/docs/");
+    let doc_extension = lower.ends_with(".md") || lower.ends_with(".mdx") || lower.ends_with(".rst");
+    let basename = path.rsplit('/').next().unwrap_or(path).to_uppercase();
+    let doc_filename = basename.starts_with("README")
+        || basename.starts_with("CHANGELOG")
+        || basename.starts_with("CONTRIBUTING");
+    in_docs_dir || doc_extension || doc_filename
+}
+
 /// Process a single PR to extract details
 pub fn process_pr(pr: &SearchResult) -> Result<ProcessedPr> {
     let details = fetch_pr_details(&pr.url)?;
@@ -32,11 +43,17 @@ pub fn process_pr(pr: &SearchResult) -> Result<ProcessedPr> {
         .map(|f| f.path.clone())
         .collect();
 
+    let doc_files: Vec<String> = details
+        .files
+        .iter()
+        .filter(|f| is_doc_file(&f.path))
+        .map(|f| f.path.clone())
+        .collect();
+
     Ok(ProcessedPr {
         title: pr.title.clone(),
         url: pr.url.clone(),
         repo: pr.repo.clone(),
-        created_at: pr.created_at.clone(),
         state: pr.state.clone(),
         additions: details.additions,
         deletions: details.deletions,
@@ -44,6 +61,7 @@ pub fn process_pr(pr: &SearchResult) -> Result<ProcessedPr> {
         risk,
         action,
         test_files,
+        doc_files,
     })
 }
 

@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum MemberLevel {
-    Junior,
+    #[serde(rename = "entrylevel")]
+    EntryLevel,
     Mid,
     Senior,
     TechLead,
@@ -18,7 +19,7 @@ pub enum MemberLevel {
 impl MemberLevel {
     pub fn as_str(&self) -> &'static str {
         match self {
-            MemberLevel::Junior => "junior",
+            MemberLevel::EntryLevel => "entrylevel",
             MemberLevel::Mid => "mid",
             MemberLevel::Senior => "senior",
             MemberLevel::TechLead => "tech_lead",
@@ -40,21 +41,21 @@ pub struct TeamConfig {
     pub members: HashMap<String, MemberConfig>,
 }
 
-pub fn generate_setup_file(members: &[String]) -> Result<PathBuf> {
+pub fn generate_setup_file(members: &[String], dir: &str) -> Result<PathBuf> {
     let mut map = HashMap::new();
     for member in members {
         map.insert(
             member.clone(),
             MemberConfig {
-                level: MemberLevel::Junior,
+                level: MemberLevel::EntryLevel,
                 role: None,
             },
         );
     }
     let config = TeamConfig { members: map };
     let json = serde_json::to_string_pretty(&config)?;
-    std::fs::create_dir_all("artifacts")?;
-    let path = PathBuf::from("artifacts/team.json");
+    std::fs::create_dir_all(dir)?;
+    let path = PathBuf::from(format!("{}/team.json", dir));
     std::fs::write(&path, json)?;
     Ok(path)
 }

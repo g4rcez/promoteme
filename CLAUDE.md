@@ -57,7 +57,7 @@ artifacts/{username}_{timestamp}/
 
 **Output structure (team mode):**
 ```
-artifacts/team_{timestamp}/
+{org_name}/{YYYY_MM_DD_HH_MM}/
   ├── {member1}.md      # Per-member contribution report
   ├── {member2}.md
   ├── SCORES.md         # Quantitative scores table
@@ -78,7 +78,7 @@ artifacts/team_{timestamp}/
 
 ## Team Config (`team.json`)
 
-Stored at `artifacts/team.json` (written by `--setup`, auto-detected by generate). Covered by `.gitignore`. The AI uses level/role context to evaluate contributions relative to seniority expectations.
+Stored at `{org_name}/team.json` (written by `--setup`, auto-detected by generate). Covered by `.gitignore`. The AI uses level/role context to evaluate contributions relative to seniority expectations.
 
 ```json
 {
@@ -89,7 +89,7 @@ Stored at `artifacts/team.json` (written by `--setup`, auto-detected by generate
 }
 ```
 
-Valid levels: `junior`, `mid`, `senior`, `tech_lead`, `specialist`, `architect`, `manager`
+Valid levels: `entrylevel`, `mid`, `senior`, `tech_lead`, `specialist`, `architect`, `manager`
 
 Generate template: `promoteme generate --team --org <org> --setup`
 

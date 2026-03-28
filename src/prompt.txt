@@ -9,6 +9,7 @@ You will receive a list of PRs, where each PR includes:
 - **Risk:** The complexity/risk level.
 - **Action:** The status/required action.
 - **Tests:** Whether tests were included.
+- **Docs:** Whether documentation files were included.
 - **Context:** A brief description of the feature (if available).
 - **Personal Notes:** Non-code contributions including team collaboration, mentorship, process improvements, and leadership activities.
 
