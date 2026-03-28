@@ -56,7 +56,7 @@ promoteme generate --team --members alice,bob,carol --start-date 2025-01-01
 
 ### Setup: level-aware evaluation
 
-Generate a `team.json` template with all org members defaulting to `junior`:
+Generate a `team.json` template with all org members defaulting to `entrylevel`:
 ```bash
 promoteme generate --team --org my-company --setup
 ```
@@ -67,14 +67,14 @@ Edit `team.json` to reflect each member's actual level and role:
   "members": {
     "alice": { "level": "senior", "role": "Backend Engineer" },
     "bob":   { "level": "tech_lead", "role": null },
-    "carol": { "level": "junior", "role": "Frontend Engineer" },
+    "carol": { "level": "entrylevel", "role": "Frontend Engineer" },
     "dave":  { "level": "architect", "role": "Platform" },
     "eve":   { "level": "manager", "role": "Engineering Manager" }
   }
 }
 ```
 
-Valid levels: `junior`, `mid`, `senior`, `tech_lead`, `specialist`, `architect`, `manager`
+Valid levels: `entrylevel`, `mid`, `senior`, `tech_lead`, `specialist`, `architect`, `manager`
 
 Then run the team report — `team.json` is auto-detected:
 ```bash

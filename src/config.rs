@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum MemberLevel {
-    Junior,
+    #[serde(rename = "entrylevel")]
+    EntryLevel,
     Mid,
     Senior,
     TechLead,
@@ -18,7 +19,7 @@ pub enum MemberLevel {
 impl MemberLevel {
     pub fn as_str(&self) -> &'static str {
         match self {
-            MemberLevel::Junior => "junior",
+            MemberLevel::EntryLevel => "entrylevel",
             MemberLevel::Mid => "mid",
             MemberLevel::Senior => "senior",
             MemberLevel::TechLead => "tech_lead",
@@ -46,7 +47,7 @@ pub fn generate_setup_file(members: &[String]) -> Result<PathBuf> {
         map.insert(
             member.clone(),
             MemberConfig {
-                level: MemberLevel::Junior,
+                level: MemberLevel::EntryLevel,
                 role: None,
             },
         );

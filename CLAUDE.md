@@ -89,7 +89,7 @@ Stored at `artifacts/team.json` (written by `--setup`, auto-detected by generate
 }
 ```
 
-Valid levels: `junior`, `mid`, `senior`, `tech_lead`, `specialist`, `architect`, `manager`
+Valid levels: `entrylevel`, `mid`, `senior`, `tech_lead`, `specialist`, `architect`, `manager`
 
 Generate template: `promoteme generate --team --org <org> --setup`
 

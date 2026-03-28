@@ -120,12 +120,12 @@ Edit `artifacts/team.json` to set each member's seniority level and role:
   "members": {
     "alice": { "level": "senior", "role": "Backend Engineer" },
     "bob":   { "level": "tech_lead", "role": null },
-    "carol": { "level": "junior", "role": "Frontend Engineer" }
+    "carol": { "level": "entrylevel", "role": "Frontend Engineer" }
   }
 }
 ```
 
-Valid levels: `junior`, `mid`, `senior`, `tech_lead`, `specialist`, `architect`, `manager`
+Valid levels: `entrylevel`, `mid`, `senior`, `tech_lead`, `specialist`, `architect`, `manager`
 
 When `artifacts/team.json` is present, `promoteme` loads it automatically and the AI evaluates each member's contributions relative to their expected level.
 
