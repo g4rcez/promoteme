@@ -41,7 +41,7 @@ pub struct TeamConfig {
     pub members: HashMap<String, MemberConfig>,
 }
 
-pub fn generate_setup_file(members: &[String]) -> Result<PathBuf> {
+pub fn generate_setup_file(members: &[String], dir: &str) -> Result<PathBuf> {
     let mut map = HashMap::new();
     for member in members {
         map.insert(
@@ -54,8 +54,8 @@ pub fn generate_setup_file(members: &[String]) -> Result<PathBuf> {
     }
     let config = TeamConfig { members: map };
     let json = serde_json::to_string_pretty(&config)?;
-    std::fs::create_dir_all("artifacts")?;
-    let path = PathBuf::from("artifacts/team.json");
+    std::fs::create_dir_all(dir)?;
+    let path = PathBuf::from(format!("{}/team.json", dir));
     std::fs::write(&path, json)?;
     Ok(path)
 }

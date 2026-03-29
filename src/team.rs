@@ -15,6 +15,7 @@ pub fn compute_member_stats(
     processed_prs: &[ProcessedPr],
     total_reviews: usize,
     quality_reviews: usize,
+    commits_by_repo: HashMap<String, u32>,
 ) -> MemberStats {
     let mut prs_merged = 0u32;
     let mut prs_open = 0u32;
@@ -49,6 +50,7 @@ pub fn compute_member_stats(
 
     let reviews_given = total_reviews as u32;
     let quality_reviews_u32 = quality_reviews as u32;
+    let total_commits: u32 = commits_by_repo.values().sum();
     let score = prs_merged as i64 * SCORE_PR_MERGED
         + prs_open as i64 * SCORE_PR_OPEN
         + quality_reviews_u32 as i64 * SCORE_QUALITY_REVIEW
@@ -69,6 +71,8 @@ pub fn compute_member_stats(
         prs_with_docs,
         small_prs,
         large_prs,
+        total_commits,
+        commits_by_repo,
         score,
     }
 }
@@ -85,6 +89,7 @@ pub fn generate_member_report(stats: &MemberStats, prs: &[ProcessedPr]) -> Strin
     report.push_str(&format!("- **PRs with Docs:** {}\n", stats.prs_with_docs));
     report.push_str(&format!("- **Small PRs (<= 200 lines):** {}\n", stats.small_prs));
     report.push_str(&format!("- **Large PRs (> 500 lines):** {}\n", stats.large_prs));
+    report.push_str(&format!("- **Total Commits:** {}\n", stats.total_commits));
     report.push_str(&format!("- **Score:** {}\n", stats.score));
     report.push('\n');
 
@@ -97,7 +102,8 @@ pub fn generate_member_report(stats: &MemberStats, prs: &[ProcessedPr]) -> Strin
     repos.sort();
 
     for repo in repos {
-        report.push_str(&format!("## {}\n\n", repo));
+        let commits = stats.commits_by_repo.get(*repo).copied().unwrap_or(0);
+        report.push_str(&format!("## {} ({} commits)\n\n", repo, commits));
         for pr in &by_repo[repo] {
             report.push_str(&pr.to_markdown());
             report.push('\n');
@@ -112,8 +118,8 @@ pub fn generate_scores_table(all_stats: &[MemberStats]) -> String {
     sorted.sort_by(|a, b| b.score.cmp(&a.score));
 
     let mut table = "# Team Scores\n\n".to_string();
-    table.push_str("| Rank | Member | Score | Merged | Reviews (Quality) | With Tests | With Docs | Avg Size |\n");
-    table.push_str("|------|--------|-------|--------|-------------------|------------|-----------|----------|\n");
+    table.push_str("| Rank | Member | Score | Merged | Reviews (Quality) | With Tests | With Docs | Commits | Avg Size |\n");
+    table.push_str("|------|--------|-------|--------|-------------------|------------|-----------|---------|----------|\n");
 
     for (i, stats) in sorted.iter().enumerate() {
         let total_prs = stats.prs_merged + stats.prs_open;
@@ -123,7 +129,7 @@ pub fn generate_scores_table(all_stats: &[MemberStats]) -> String {
             0
         };
         table.push_str(&format!(
-            "| {} | {} | {} | {} | {} ({}) | {} | {} | {} |\n",
+            "| {} | {} | {} | {} | {} ({}) | {} | {} | {} | {} |\n",
             i + 1,
             stats.username,
             stats.score,
@@ -132,6 +138,7 @@ pub fn generate_scores_table(all_stats: &[MemberStats]) -> String {
             stats.quality_reviews,
             stats.prs_with_tests,
             stats.prs_with_docs,
+            stats.total_commits,
             avg_size,
         ));
     }

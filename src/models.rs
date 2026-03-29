@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -5,7 +7,6 @@ pub struct SearchResult {
     pub title: String,
     pub url: String,
     pub repo: String,
-    pub created_at: String,
     pub state: String,
 }
 
@@ -21,6 +22,8 @@ pub struct MemberStats {
     pub prs_with_docs: u32,
     pub small_prs: u32,
     pub large_prs: u32,
+    pub total_commits: u32,
+    pub commits_by_repo: HashMap<String, u32>,
     pub score: i64,
 }
 
@@ -53,7 +56,6 @@ pub struct ProcessedPr {
     pub title: String,
     pub url: String,
     pub repo: String,
-    pub created_at: String,
     pub state: String,
     pub additions: i64,
     pub deletions: i64,

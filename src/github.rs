@@ -1,5 +1,6 @@
 use anyhow::{bail, Context, Result};
 use rayon::prelude::*;
+use std::collections::HashMap;
 use std::process::Command;
 
 use crate::models::{PrDetails, ReviewInfo, ReviewedPr, SearchResult};
@@ -87,7 +88,7 @@ pub fn fetch_prs(
             "-f",
             "per_page=30",
             "--jq",
-            r#".items[] | {title: .title, url: .html_url, repo: (.repository_url | sub("https://api.github.com/repos/"; "")), created_at: .created_at, state: (if .pull_request.merged_at != null then "merged" else .state end)}"#,
+            r#".items[] | {title: .title, url: .html_url, repo: (.repository_url | sub("https://api.github.com/repos/"; "")), state: (if .pull_request.merged_at != null then "merged" else .state end)}"#,
         ])
         .output()
         .context("Failed to fetch PRs")?;
@@ -260,6 +261,70 @@ pub fn fetch_org_members(org: &str) -> Result<Vec<String>> {
         .collect();
 
     Ok(members)
+}
+
+pub fn fetch_commit_counts(
+    user: &str,
+    start_date: Option<&str>,
+    end_date: Option<&str>,
+    org_filter: Option<&str>,
+    repo_filter: Option<&str>,
+) -> Result<HashMap<String, u32>> {
+    let date_part = match (start_date, end_date) {
+        (Some(s), Some(e)) => format!(" committer-date:{}..{}", s, e),
+        (Some(s), None) => format!(" committer-date:>={}", s),
+        (None, Some(e)) => format!(" committer-date:<={}", e),
+        (None, None) => String::new(),
+    };
+
+    let mut query = format!("author:{}{}", user, date_part);
+
+    if let Some(orgs) = org_filter {
+        for org in orgs.split(',') {
+            query.push_str(&format!(" org:{}", org.trim()));
+        }
+    }
+
+    if let Some(repos) = repo_filter {
+        for repo in repos.split(',') {
+            query.push_str(&format!(" repo:{}", repo.trim()));
+        }
+    }
+
+    let output = Command::new("gh")
+        .args([
+            "api",
+            "-X",
+            "GET",
+            "search/commits",
+            "-H",
+            "Accept: application/vnd.github.cloak-preview+json",
+            "-f",
+            &format!("q={}", query),
+            "--paginate",
+            "-f",
+            "per_page=100",
+            "--jq",
+            ".items[].repository.full_name",
+        ])
+        .output()
+        .context("Failed to fetch commit counts")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("Failed to fetch commits for {}: {}", user, stderr);
+    }
+
+    let stdout = String::from_utf8(output.stdout)?;
+    let mut counts: HashMap<String, u32> = HashMap::new();
+    for line in stdout.lines() {
+        let repo = line.trim();
+        if !repo.is_empty() {
+            *counts.entry(repo.to_string()).or_insert(0) += 1;
+        }
+    }
+
+    Ok(counts)
 }
 
 /// Fetch detailed PR information

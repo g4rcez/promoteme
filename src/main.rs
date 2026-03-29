@@ -8,14 +8,14 @@ mod processor;
 mod team;
 
 use anyhow::{anyhow, Result};
-use chrono::{Duration, Utc};
+use chrono::{Duration, Local, Utc};
 use clap::Parser;
 use std::fs;
 use std::path::Path;
 
 use crate::ai::{check_ai_available, concatenate_reports, generate_final_document, generate_notes_summary, generate_team_document, translate_report};
 use crate::cli::{Cli, Commands};
-use crate::github::{check_gh_auth, check_gh_installed, fetch_org_members, fetch_prs, fetch_quality_reviews, get_current_user};
+use crate::github::{check_gh_auth, check_gh_installed, fetch_commit_counts, fetch_org_members, fetch_prs, fetch_quality_reviews, get_current_user};
 use crate::notes::collect_notes;
 use crate::processor::{generate_repo_report, process_all_prs};
 
@@ -243,10 +243,11 @@ fn run_team_setup(members_opt: Option<String>, org_filter: Option<String>) -> Re
     check_gh_installed()?;
     check_gh_auth()?;
 
+    let team_name = org_filter.as_deref().unwrap_or("team").to_string();
     let members = resolve_members(members_opt, org_filter)?;
-    let path = config::generate_setup_file(&members)?;
+    let path = config::generate_setup_file(&members, &team_name)?;
     println!("Created {} with {} members (all defaulting to entrylevel).", path.display(), members.len());
-    println!("Edit artifacts/team.json to set levels, then run: promoteme generate --team --org ...");
+    println!("Edit {}/team.json to set levels, then run: promoteme generate --team --org ...", team_name);
     println!("Valid levels: entrylevel, mid, senior, tech_lead, specialist, architect, manager");
     Ok(())
 }
@@ -263,9 +264,10 @@ fn run_team_generate(
     check_gh_installed()?;
     check_gh_auth()?;
 
+    let team_name = org_filter.as_deref().unwrap_or("team").to_string();
     let members = resolve_members(members_opt, org_filter.clone())?;
 
-    let config_dir = Path::new("artifacts");
+    let config_dir = Path::new(&team_name);
     let team_config = config::load_team_config(config_dir)?;
     if team_config.is_some() {
         println!("Loaded team config from {}.", config_dir.join("team.json").display());
@@ -276,7 +278,8 @@ fn run_team_generate(
     let (start, end) = resolve_dates(start_date, end_date);
     let date_filter = build_date_filter(&start, &end);
 
-    let output_dir_name = format!("artifacts/team_{}", get_timestamp_suffix());
+    let timestamp = Local::now().format("%Y_%m_%d_%H_%M").to_string();
+    let output_dir_name = format!("{}/{}", team_name, timestamp);
     let output_dir = Path::new(&output_dir_name);
     fs::create_dir_all(output_dir)?;
     println!("Output directory created: {}", output_dir.display());
@@ -316,7 +319,21 @@ fn run_team_generate(
             }
         };
 
-        let stats = team::compute_member_stats(member, &processed_prs, total_reviews, quality_reviews);
+        let commits_by_repo = match fetch_commit_counts(
+            member,
+            start.as_deref(),
+            end.as_deref(),
+            org_filter.as_deref(),
+            repo_filter.as_deref(),
+        ) {
+            Ok(counts) => counts,
+            Err(e) => {
+                eprintln!("Warning: Could not fetch commits for {}: {}", member, e);
+                std::collections::HashMap::new()
+            }
+        };
+
+        let stats = team::compute_member_stats(member, &processed_prs, total_reviews, quality_reviews, commits_by_repo);
         let report = team::generate_member_report(&stats, &processed_prs);
 
         let member_path = output_dir.join(format!("{}.md", member));

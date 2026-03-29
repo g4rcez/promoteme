@@ -54,7 +54,6 @@ pub fn process_pr(pr: &SearchResult) -> Result<ProcessedPr> {
         title: pr.title.clone(),
         url: pr.url.clone(),
         repo: pr.repo.clone(),
-        created_at: pr.created_at.clone(),
         state: pr.state.clone(),
         additions: details.additions,
         deletions: details.deletions,
