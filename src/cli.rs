@@ -48,4 +48,61 @@ pub enum Commands {
         #[arg(long)]
         setup: bool,
     },
+    /// Track and analyze job interviews
+    Interview {
+        #[command(subcommand)]
+        command: InterviewCommands,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum InterviewCommands {
+    /// Initialize interview tracking for a company
+    Init {
+        company: String,
+    },
+    /// Create a new interview step
+    New {
+        step: u32,
+
+        #[arg(long)]
+        company: String,
+
+        #[arg(long)]
+        title: Option<String>,
+
+        #[arg(long)]
+        start_teleprompter: bool,
+    },
+    /// Generate an AI summary for a completed interview step
+    Summarize {
+        #[arg(long)]
+        company: String,
+
+        #[arg(long)]
+        step: u32,
+
+        #[arg(short = 'm', long, default_value = "claude")]
+        model: String,
+
+        #[arg(short = 'l', long)]
+        language: Option<String>,
+    },
+    /// Analyze your interview progression over time
+    Progression {
+        #[arg(long)]
+        company: Option<String>,
+
+        #[arg(long)]
+        start_date: Option<String>,
+
+        #[arg(long)]
+        end_date: Option<String>,
+
+        #[arg(short = 'm', long, default_value = "claude")]
+        model: String,
+
+        #[arg(short = 'l', long)]
+        language: Option<String>,
+    },
 }

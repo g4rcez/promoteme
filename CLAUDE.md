@@ -29,6 +29,24 @@ cargo build
 
 # Team setup - generate team.json template
 ./target/debug/promoteme generate --team --org my-company --setup
+
+# Interview tracking - initialize a company
+./target/debug/promoteme interview init acme
+
+# Interview tracking - create a new step
+./target/debug/promoteme interview new 1 --company acme --title "Phone Screen"
+
+# Interview tracking - create a step and show teleprompter path
+./target/debug/promoteme interview new 2 --company acme --title "Technical" --start-teleprompter
+
+# Interview tracking - generate AI summary for a step
+./target/debug/promoteme interview summarize --company acme --step 1
+
+# Interview tracking - show progression across all companies
+./target/debug/promoteme interview progression
+
+# Interview tracking - show progression for one company with date filter
+./target/debug/promoteme interview progression --company acme --start-date 2025-01-01
 ```
 
 ## Dependencies
@@ -45,6 +63,7 @@ Rust CLI with multiple modules:
 2. **Processing** (`src/processor.rs`, `src/team.rs`): Groups PRs by repo, computes member stats
 3. **AI synthesis** (`src/ai.rs`): Generates final documents via AI CLI
 4. **Config** (`src/config.rs`): Loads/writes `team.json` for level-aware team evaluation
+5. **Interview tracking** (`src/interview.rs`): Manages interview processes per company
 
 **Output structure (individual mode):**
 ```
@@ -64,6 +83,17 @@ artifacts/{username}_{timestamp}/
   └── README.md         # AI-generated team performance overview
 ```
 
+**Output structure (interview mode):**
+```
+interviews/{company}/
+  ├── transcripts/
+  │   └── step_{NN}/    # external teleprompter writes .md files here
+  ├── notes/
+  │   └── step_{NN}.md  # user's personal notes per step
+  ├── INTERVIEW_{NN}_SUMMARY.md  # AI-generated summary per step
+  └── interview.json    # metadata and step tracking
+```
+
 ## Key Files
 
 - `src/main.rs` - Entry point, CLI dispatch, `run_generate`, `run_team_generate`, `run_team_setup`, `resolve_members`
@@ -73,7 +103,10 @@ artifacts/{username}_{timestamp}/
 - `src/config.rs` - `TeamConfig`, `MemberLevel`, `generate_setup_file`, `load_team_config`
 - `src/team.rs` - Member stats and report generation
 - `src/processor.rs` - PR processing and repo grouping
+- `src/interview.rs` - Interview tracking: `run_interview_init`, `run_interview_new`, `run_interview_summarize`, `run_interview_progression`
 - `src/prompt.txt` - AI prompt template for individual brag docs
+- `src/interview_prompt.txt` - AI prompt template for per-step interview summaries
+- `src/progression_prompt.txt` - AI prompt template for interview progression analysis
 - `EXAMPLES.md` - Usage examples
 
 ## Team Config (`team.json`)

@@ -2,6 +2,7 @@ mod ai;
 mod cli;
 mod config;
 mod github;
+mod interview;
 mod models;
 mod notes;
 mod processor;
@@ -14,7 +15,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::ai::{check_ai_available, concatenate_reports, generate_final_document, generate_notes_summary, generate_team_document, translate_report};
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, InterviewCommands};
 use crate::github::{check_gh_auth, check_gh_installed, fetch_commit_counts, fetch_org_members, fetch_prs, fetch_quality_reviews, get_current_user};
 use crate::notes::collect_notes;
 use crate::processor::{generate_repo_report, process_all_prs};
@@ -52,11 +53,26 @@ fn main() -> Result<()> {
                 run_generate(start_date, end_date, org, repo, language, model, notes, cwd)?;
             }
         }
+        Some(Commands::Interview { command }) => match command {
+            InterviewCommands::Init { company } => {
+                interview::run_interview_init(&company)?;
+            }
+            InterviewCommands::New { step, company, title, start_teleprompter } => {
+                interview::run_interview_new(step, &company, title, start_teleprompter)?;
+            }
+            InterviewCommands::Summarize { company, step, model, language } => {
+                interview::run_interview_summarize(&company, step, model, language)?;
+            }
+            InterviewCommands::Progression { company, start_date, end_date, model, language } => {
+                interview::run_interview_progression(company, start_date, end_date, model, language)?;
+            }
+        },
         None => {
             println!("Usage: promoteme <command> [OPTIONS]");
             println!();
             println!("Commands:");
             println!("  generate    Generate brag document from GitHub contributions");
+            println!("  interview   Track and analyze job interviews");
             println!();
             println!("Run 'promoteme --help' for more information.");
         }
