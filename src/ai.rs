@@ -2,6 +2,8 @@ use anyhow::{bail, Result};
 use std::process::Command;
 
 const PROMPT_TEMPLATE: &str = include_str!("prompt.txt");
+const INTERVIEW_PROMPT_TEMPLATE: &str = include_str!("interview_prompt.txt");
+const PROGRESSION_PROMPT_TEMPLATE: &str = include_str!("progression_prompt.txt");
 
 fn parse_model_spec(model: &str) -> (&str, Option<&str>) {
     match model.split_once('@') {
@@ -154,6 +156,44 @@ pub fn translate_report(model: &str, content: &str, language: &str) -> Result<St
         "Translate this markdown to {}. Keep markdown formatting and structure intact:\n\n{}",
         language, content
     );
+    invoke_ai(model, &prompt)
+}
+
+pub fn generate_interview_summary(
+    model: &str,
+    transcript_content: &str,
+    notes_content: &str,
+    language: Option<&str>,
+) -> Result<String> {
+    let mut prompt = INTERVIEW_PROMPT_TEMPLATE.to_string();
+
+    if let Some(lang) = language {
+        prompt.push_str(&format!("\n\nPlease provide the output in {}.", lang));
+    }
+
+    prompt.push_str("\n\n--- TRANSCRIPT ---\n");
+    prompt.push_str(transcript_content);
+
+    prompt.push_str("\n\n--- NOTES ---\n");
+    prompt.push_str(notes_content);
+
+    invoke_ai(model, &prompt)
+}
+
+pub fn generate_progression_report(
+    model: &str,
+    all_content: &str,
+    language: Option<&str>,
+) -> Result<String> {
+    let mut prompt = PROGRESSION_PROMPT_TEMPLATE.to_string();
+
+    if let Some(lang) = language {
+        prompt.push_str(&format!("\n\nPlease provide the output in {}.", lang));
+    }
+
+    prompt.push_str("\n\n--- INTERVIEW DATA ---\n");
+    prompt.push_str(all_content);
+
     invoke_ai(model, &prompt)
 }
 
